@@ -1,0 +1,3 @@
+[submodule "The-DPDK-Common"]
+	path = The-DPDK-Common
+	url = https://github.com/gamemann/The-DPDK-Common.git
