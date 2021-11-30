@@ -45,7 +45,7 @@ cmdlinebuild: Makefile $(PC_FILE) | build
 main: commonbuild cmdlinebuild $(OBJS) Makefile $(PC_FILE) | build
 	$(CC) -I $(COMMONDIR)/$(SRCDIR) -pthread $(CFLAGS) $(SRCDIR)/$(SRC) -o $(BUILDDIR)/$(OUT) $(LDFLAGS) $(OBJS) $(LDFLAGS_SHARED)
 install:
-	ln -s $(BUILDDIR)/$(OUT) /usr/bin/$(OUT)
+	cp $(BUILDDIR)/$(OUT) /usr/bin/$(OUT)
 clean:
 	rm -f $(BUILDDIR)/*
 	$(MAKE) -C $(COMMONDIR) clean
