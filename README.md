@@ -2,6 +2,8 @@
 ## Description
 A small DPDK application that increments a basic packet counter for TCP or UDP packets depending on what's specified in the command line (UDP is default). The amount of packets per second is outputted on a new line each second and total packets is outputted before the program exits.
 
+Dropped and forward (TX) mode is supported (dropped mode is default). When TX is specified in the command line, the source and destination MAC and IP addresses are swapped along with the TCP/UDP ports. Afterwards, the packet is forwarded.
+
 This repository uses my DPDK Common [project](https://github.com/gamemann/The-DPDK-Common) in an effort to make things simpler.
 
 ## Requirements
@@ -33,15 +35,16 @@ sudo apt install ninja-build
 ```
 
 ## Building This Project
-You may use `git` and `make` to build this application.
+You may use `git` and `make` to build and install this application.
 
 ```
 git clone --recursive https://github.com/gamemann/The-DPDK-Stats.git
 cd The-DPDK-Stats/
 make
+sudo make install
 ```
 
-The `dpdk-stats` executable will be available inside the `build/` directory.
+The `dpdk-stats` executable will be available inside the `build/` directory. If you use `sudo make install`, it will be installed to `/usr/bin/` which should be in your `$PATH`. Therefore, you can simply run the application with `dpdk-stats` from any directory.
 
 ## EAL Parameters
 This application supports DPDK's EAL paramters. These may be found [here](http://doc.dpdk.org/guides/linux_gsg/linux_eal_parameters.html).
