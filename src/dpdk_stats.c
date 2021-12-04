@@ -20,6 +20,7 @@
 #include "cmdline.h"
 
 __u64 pckts_counter = 0;
+__u64 bytes_counter = 0;
 
 struct cmdline cmd = {0};
 
@@ -151,6 +152,7 @@ static void inspect_pckt(struct rte_mbuf *pckt, unsigned port_id, __u8 fwd, __u8
             {
                 // Increment packets counter.
                 pckts_counter++;
+                bytes_counter += pckt->pkt_len;
 
                 rte_pktmbuf_free(pckt);
 
@@ -170,6 +172,7 @@ static void inspect_pckt(struct rte_mbuf *pckt, unsigned port_id, __u8 fwd, __u8
             {
                 // Increment packets counter.
                 pckts_counter++;
+                bytes_counter += pckt->pkt_len;
 
                 rte_pktmbuf_free(pckt);
 
@@ -218,6 +221,7 @@ static void inspect_pckt(struct rte_mbuf *pckt, unsigned port_id, __u8 fwd, __u8
 
     // Increment packets counter.
     pckts_counter++;
+    bytes_counter += pckt->pkt_len;
     
     rte_eth_tx_buffer(dst_port, 0, buffer, pckt);
 }
@@ -364,19 +368,22 @@ static void sign_hdl(int tmp)
 void *hndl_stats(void *tmp)
 {
     // Last updated variable.
-    __u64 last_counter = 0;
+    __u64 pps_last_counter = 0;
+    __u64 bps_last_counter = 0;
 
     // Run until program exits.
     while (!quit)
     {
-        // Retrieve current PPS.
-        __u64 pps = pckts_counter - last_counter;
+        // Retrieve current stats.
+        __u64 pps = pckts_counter - pps_last_counter;
+        __u64 bps = bytes_counter - bps_last_counter;
 
         // Print stats on new line.
-        printf("PPS => %llu.\n", pps);
+        printf("PPS => %llu. BPS => %llu.\n", pps, bps);
 
         // Update last variable.
-        last_counter = pckts_counter;
+        pps_last_counter = pckts_counter;
+        bps_last_counter = bytes_counter;
 
         // Sleep for a second to avoid unnecessary CPU cycles.
         sleep(1);
@@ -466,8 +473,14 @@ int main(int argc, char **argv)
 
     pthread_create(&pid, NULL, hndl_stats, NULL);
 
+    // Get start timestamp.
+    time_t start = time(NULL);
+
     // Launch the application on each l-core.
     dpdkc_launch_and_run(launch_lcore);
+
+    // Get end timestamp.
+    time_t end = time(NULL);
 
     // Stop all ports.
     ret = dpdkc_port_stop_and_remove();
@@ -478,6 +491,16 @@ int main(int argc, char **argv)
     ret = dpdkc_eal_cleanup();
 
     dpdkc_check_ret(&ret);
+
+    // Retrieve how long our program ran for.
+    time_t elapsed = end - start;
+
+    // Calculate the average PPS and BPS.
+    __u64 avg_pps = (pckts_counter) ? pckts_counter / elapsed : 0;
+    __u64 avg_bps = (bytes_counter) ? bytes_counter / elapsed : 0;
+
+    // Print total statistics.
+    printf("\n\nTime Elapsed => %lu seconds. Avg PPS => %llu. Avg BPS => %llu.\n", elapsed, avg_pps, avg_bps);
 
     printf("Total Packets %s => %llu.\n", (cmd.tx) ? "Forwarded" : "Dropped", pckts_counter);
 
