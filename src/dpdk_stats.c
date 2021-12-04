@@ -213,8 +213,8 @@ static void inspect_pckt(struct rte_mbuf *pckt, unsigned port_id, __u8 fwd, __u8
     struct rte_eth_dev_tx_buffer *buffer;
 
     // Retrieve what port we're going out of and TX buffer to use.
-    dst_port = dst_ports[port_id];
-    buffer = tx_buffer[dst_port];
+    dst_port = ports[port_id].tx_port;
+    buffer = ports[dst_port].tx_buffer;
 
     // Increment packets counter.
     pckts_counter++;
@@ -230,7 +230,7 @@ static void inspect_pckt(struct rte_mbuf *pckt, unsigned port_id, __u8 fwd, __u8
 static void pckt_loop(void)
 {
     // An array of packets witin burst.
-    struct rte_mbuf *pckts_burst[MAX_PCKT_BURST];
+    struct rte_mbuf *pckts_burst[packet_burst_size];
 
     // Single mbuf we'll use to inspect.
     struct rte_mbuf *pckt;
@@ -247,7 +247,7 @@ static void pckt_loop(void)
     unsigned nb_rx;
 
     // The specific RX queue config for the l-core.
-    struct lcore_queue_conf *qconf = &lcore_queue_conf[lcore_id];
+    struct lcore_port_conf *qconf = &lcore_port_conf[lcore_id];
 
     // For TX draining.
     const __u64 draintsc = (rte_get_tsc_hz() + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
@@ -284,18 +284,21 @@ static void pckt_loop(void)
         // Calculate the difference.
         difftsc = curtsc - prevtsc;
 
-        // Check if we need to flush the TX buffer.
+        // Check if we need to send packets from buffer.
         if (unlikely(difftsc > draintsc))
         {
-            // Loop through all RX ports.
-            for (i = 0; i < qconf->num_rx_ports; i++)
+            // Loop through all TX ports.
+            for (i = 0; i < qconf->num_tx_ports; i++)
             {
                 // Retrieve correct port_id and buffer.
-                port_id = dst_ports[qconf->rx_port_list[i]];
-                buffer = tx_buffer[port_id];
+                port_id = ports[qconf->rx_port_list[i]].tx_port;
+                buffer = ports[port_id].tx_buffer;
 
-                // Flush buffer.
-                rte_eth_tx_buffer_flush(port_id, 0, buffer);
+                // Send packets from all TX queues.
+                for (j = 0; j < tx_queue_pp; j++)
+                {
+                    rte_eth_tx_buffer_flush(port_id, j, buffer);
+                }
             }
 
             // Assign prevtsc.
@@ -309,7 +312,7 @@ static void pckt_loop(void)
             port_id = qconf->rx_port_list[i];
 
             // Burst RX which will assign nb_rx to the amount of packets we have from the RX queue.
-            nb_rx = rte_eth_rx_burst(port_id, 0, pckts_burst, MAX_PCKT_BURST);
+            nb_rx = rte_eth_rx_burst(port_id, 0, pckts_burst, packet_burst_size);
 
             // Loop through the amount of packets we have from the RX queue.
             for (j = 0; j < nb_rx; j++)
@@ -418,8 +421,6 @@ int main(int argc, char **argv)
 
     dpdkc_check_ret(&ret);
 
-    nb_ports = (unsigned short)ret.data;
-
     // Check port pairs.
     ret = dpdkc_check_port_pairs();
 
@@ -436,11 +437,6 @@ int main(int argc, char **argv)
     // Populate our destination ports.
     dpdkc_populate_dst_ports();
 
-    // Initialize the port and queue combination for each l-core.
-    ret = dpdkc_ports_queues_mapping();
-
-    dpdkc_check_ret(&ret);
-
     // Initialize mbuf pool.
     ret = dpdkc_create_mbuf();
 
@@ -450,6 +446,11 @@ int main(int argc, char **argv)
     ret = dpdkc_ports_queues_init(cmd.promisc, 1, 1);
 
     // Check for error and fail with it if there is.
+    dpdkc_check_ret(&ret);
+
+    // Initialize the port and queue combination for each l-core.
+    ret = dpdkc_ports_queues_mapping();
+
     dpdkc_check_ret(&ret);
 
     // Check for available ports.
