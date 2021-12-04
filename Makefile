@@ -41,9 +41,9 @@ build:
 commonbuild:
 	$(MAKE) -C $(COMMONDIR)
 cmdlinebuild: Makefile $(PC_FILE) | build
-	$(CC) -I $(COMMONDIR)/$(SRCDIR) -c $(CFLAGS) -o $(BUILDDIR)/$(CMDLINEOBJ) $(LDFLAGS) $(LDFLAGS_SHARED) $(SRCDIR)/$(CMDLINESRC)
+	$(CC) -I $(COMMONDIR)/$(SRCDIR) -c $(CFLAGS) -o $(BUILDDIR)/$(CMDLINEOBJ) $(LDFLAGS) $(LDFLAGS_STATIC) $(SRCDIR)/$(CMDLINESRC)
 main: commonbuild cmdlinebuild $(OBJS) Makefile $(PC_FILE) | build
-	$(CC) -I $(COMMONDIR)/$(SRCDIR) -pthread $(CFLAGS) $(SRCDIR)/$(SRC) -o $(BUILDDIR)/$(OUT) $(LDFLAGS) $(OBJS) $(LDFLAGS_SHARED)
+	$(CC) -I $(COMMONDIR)/$(SRCDIR) -pthread $(CFLAGS) $(SRCDIR)/$(SRC) -o $(BUILDDIR)/$(OUT) $(LDFLAGS) $(OBJS) $(LDFLAGS_STATIC)
 install:
 	cp $(BUILDDIR)/$(OUT) /usr/bin/$(OUT)
 clean:
