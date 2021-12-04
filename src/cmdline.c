@@ -44,8 +44,6 @@ int parsecmdline(struct cmdline *cmd, int argc, char **argv)
 
             case 'q':
                 ret = dpdkc_parse_arg_queues(optarg, 1, 1);
-
-                rx_queue_pp = (unsigned short)ret.data;
                 
                 if (rx_queue_pp == 0)
                 {
