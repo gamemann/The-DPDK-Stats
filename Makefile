@@ -2,7 +2,7 @@ BUILDDIR=build
 COMMONDIR=The-DPDK-Common
 SRCDIR=src
 
-COMMONOBJ=$(COMMONDIR)/objs/dpdk_common.o
+COMMONOBJ=$(COMMONDIR)/objs/static/dpdk_common.o
 COMMONSRC=$(COMMONDIR)/src
 
 CMDLINEOBJ=cmdline.o
