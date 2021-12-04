@@ -28,8 +28,6 @@ int parsecmdline(struct cmdline *cmd, int argc, char **argv)
             case 'p':
                 ret = dpdkc_parse_arg_port_mask(optarg);
 
-                enabled_port_mask = (unsigned int)ret.data;
-
                 if (enabled_port_mask == 0)
                 {
                     rte_exit(EXIT_FAILURE, "Invalid portmask specified with -p or --portmask.\n");
@@ -45,16 +43,16 @@ int parsecmdline(struct cmdline *cmd, int argc, char **argv)
                 break;
 
             case 'q':
-                ret = dpdkc_parse_arg_queues(optarg);
+                ret = dpdkc_parse_arg_queues(optarg, 1, 1);
 
-                rx_queue_pl = (unsigned short)ret.data;
+                rx_queue_pp = (unsigned short)ret.data;
                 
-                if (rx_queue_pl == 0)
+                if (rx_queue_pp == 0)
                 {
                     rte_exit(EXIT_FAILURE, "Invalid queue number argument with -q or --queues.\n");
                 }
 
-                cmd->queues = rx_queue_pl;
+                cmd->queues = rx_queue_pp;
 
                 break;
 
